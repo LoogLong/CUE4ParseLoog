@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using CUE4Parse_Conversion.Textures;
@@ -19,6 +19,7 @@ namespace CUE4Parse_Conversion.Materials
     {
         private readonly string _internalFilePath;
         private readonly MaterialData _materialData;
+        private readonly string _jsonData;
 
         public MaterialExporter2(ExporterOptions options)
         {
@@ -35,7 +36,7 @@ namespace CUE4Parse_Conversion.Materials
         {
             if (unrealMaterial == null) return;
             _internalFilePath = unrealMaterial.Owner?.Name ?? unrealMaterial.Name;
-
+            _jsonData = JsonConvert.SerializeObject(unrealMaterial, Formatting.Indented);
             unrealMaterial.GetParams(_materialData.Parameters, Options.MaterialFormat);
             foreach ((string key, UUnrealMaterial value) in _materialData.Parameters.Textures)
             {
@@ -51,7 +52,7 @@ namespace CUE4Parse_Conversion.Materials
             if (!baseDirectory.Exists) return false;
 
             savedFilePath = FixAndCreatePath(baseDirectory, _internalFilePath, "json");
-            File.WriteAllText(savedFilePath, JsonConvert.SerializeObject(_materialData, Formatting.Indented));
+            File.WriteAllText(savedFilePath, _jsonData);
             label = Path.GetFileName(savedFilePath);
 
             Parallel.ForEach(_materialData.Parameters.Textures.Values, texture =>
@@ -75,7 +76,11 @@ namespace CUE4Parse_Conversion.Materials
                     stream.CopyTo(fs);
                 }
             });
-
+            if (_materialData.Parameters.Parent != null)
+            {
+                var parentExport = new MaterialExporter2(_materialData.Parameters.Parent, Options);
+                parentExport.TryWriteToDir(baseDirectory, out var label1, out var savedFilePath1);
+            }
             return true;
         }
 
