@@ -294,6 +294,10 @@ namespace CUE4Parse_Conversion.Meshes
 
                 convertedMesh.RefSkeleton.Add(skeletalMeshBone);
             }
+            if (originalMesh.Skeleton.TryLoad<USkeleton>(out var originalSkeleton))
+            {
+                convertedMesh.SkeletonPath = originalSkeleton.GetPathName();
+            }
 
             convertedMesh.FinalizeMesh();
             return true;

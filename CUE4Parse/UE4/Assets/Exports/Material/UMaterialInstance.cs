@@ -58,6 +58,10 @@ namespace CUE4Parse.UE4.Assets.Exports.Material
         {
             base.GetParams(parameters, format);
 
+            if (Parent != null && Parent != this)
+            {
+                parameters.Parent = Parent;
+            }
             if (StaticParameters != null)
                 foreach (var switchParameter in StaticParameters.StaticSwitchParameters)
                     parameters.Switches[switchParameter.Name] = switchParameter.Value;

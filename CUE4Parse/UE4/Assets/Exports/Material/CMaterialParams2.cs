@@ -149,6 +149,7 @@ namespace CUE4Parse.UE4.Assets.Exports.Material
         public readonly Dictionary<string, float> Scalars = new ();
         public readonly Dictionary<string, bool> Switches = new ();
         public readonly Dictionary<string, object?> Properties = new ();
+        public UUnrealMaterial? Parent;
 
         public IEnumerable<UUnrealMaterial> GetTextures(IEnumerable<string> names)
         {

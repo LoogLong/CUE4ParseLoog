@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using CUE4Parse_Conversion.Meshes.PSK;
 using CUE4Parse_Conversion.Meshes.UEFormat.Collision;
@@ -82,7 +82,15 @@ public class UEModel : UEFormatExport
             
             skeletonChunk.Serialize(Ar);
         }
+        using (var propertyChunk = new FDataChunk("SkeletalMeshProperty", 1))
+        {
+            var SkeletonPath = new FString(mesh.SkeletonPath);
+            SkeletonPath.Serialize(propertyChunk);
 
+            propertyChunk.Serialize(Ar);
+        }
+
+        
         /*if (physicsAssetLazy.TryLoad(out UPhysicsAsset physicsAsset))
         {
             using var physicsChunk = new FDataChunk("PHYSICS", 1);
@@ -196,8 +204,10 @@ public class UEModel : UEFormatExport
         {
             foreach (var section in sections)
             {
-                var materialName = section.Material?.Name.Text ?? string.Empty;
+                var materialName = section.Material?.GetPathName() ?? string.Empty;
+                var SlotName = section.MaterialName ?? string.Empty;
                 materialChunk.WriteFString(materialName);
+                materialChunk.WriteFString(SlotName);
                 materialChunk.Write(section.FirstIndex);
                 materialChunk.Write(section.NumFaces);
             }

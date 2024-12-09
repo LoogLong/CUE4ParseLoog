@@ -1,4 +1,4 @@
-﻿using CUE4Parse.UE4.Assets;
+using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Assets.Exports.SkeletalMesh;
 using CUE4Parse.UE4.Assets.Exports.StaticMesh;
 
@@ -9,6 +9,7 @@ namespace CUE4Parse_Conversion.Meshes.PSK
         public int MaterialIndex;
         public string? MaterialName;
         public ResolvedObject? Material; // UMaterialInterface
+        public string SlotName;
         public int FirstIndex;
         public int NumFaces;
 

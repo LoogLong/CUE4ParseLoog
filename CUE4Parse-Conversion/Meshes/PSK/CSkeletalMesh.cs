@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using CUE4Parse.UE4.Objects.Core.Math;
 
 namespace CUE4Parse_Conversion.Meshes.PSK
@@ -9,7 +9,7 @@ namespace CUE4Parse_Conversion.Meshes.PSK
         public List<CSkelMeshBone> RefSkeleton;
         public FBox BoundingBox;
         public FSphere BoundingSphere;
-
+        public string SkeletonPath;
         public CSkeletalMesh()
         {
             LODs = new List<CSkelMeshLod>();
