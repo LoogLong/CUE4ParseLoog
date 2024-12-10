@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using CUE4Parse_Conversion.Animations.PSA;
 using CUE4Parse_Conversion.UEFormat;
 using CUE4Parse_Conversion.UEFormat.Structs;
@@ -16,6 +16,9 @@ public class UEAnim : UEFormatExport
         var originalSequence = sequence.OriginalSequence;
         Ar.Write(sequence.NumFrames);
         Ar.Write(sequence.FramesPerSecond);
+        var SkeletonPath = animSet.Skeleton.GetPathName();
+        FString fString = new FString(SkeletonPath);
+        fString.Serialize(Ar);
 
         var refSkeleton = animSet.Skeleton.ReferenceSkeleton;
         using (var trackChunk = new FDataChunk("TRACKS", sequence.Tracks.Count))

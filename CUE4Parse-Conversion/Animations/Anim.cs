@@ -1,5 +1,8 @@
-﻿using System;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using CUE4Parse.UE4.Assets.Exports;
 
 namespace CUE4Parse_Conversion.Animations
 {
@@ -14,7 +17,7 @@ namespace CUE4Parse_Conversion.Animations
             FileData = fileData;
         }
 
-        public override bool TryWriteToDir(DirectoryInfo baseDirectory, out string label, out string savedFilePath)
+        public override bool TryWriteToDir(DirectoryInfo baseDirectory, List<UObject> ObjectQueue, out string label, out string savedFilePath)
         {
             label = string.Empty;
             savedFilePath = string.Empty;

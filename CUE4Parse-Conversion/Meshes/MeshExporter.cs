@@ -13,6 +13,9 @@ using CUE4Parse.UE4.Objects.PhysicsEngine;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.Utils;
 using Serilog;
+using CUE4Parse.UE4.Assets.Exports;
+using System.Collections.Concurrent;
+using CUE4Parse.UE4.Assets.Exports.Material;
 
 namespace CUE4Parse_Conversion.Meshes
 {
@@ -50,7 +53,7 @@ namespace CUE4Parse_Conversion.Meshes
                     throw new ArgumentOutOfRangeException(nameof(Options.MeshFormat), Options.MeshFormat, null);
             }
 
-            MeshLods.Add(new Mesh($"{PackagePath}.{ext}", Ar.GetBuffer(), new List<MaterialExporter2>()));
+            MeshLods.Add(new Mesh($"{PackagePath}.{ext}", Ar.GetBuffer(), new List<UMaterialInterface>()));
         }
 
         public MeshExporter(UStaticMesh originalMesh, ExporterOptions options) : base(originalMesh, options)
@@ -67,51 +70,51 @@ namespace CUE4Parse_Conversion.Meshes
             {
                 using var ueModelArchive = new FArchiveWriter();
                 new UEModel(originalMesh.Name, convertedMesh, originalMesh.BodySetup, Options).Save(ueModelArchive);
-                MeshLods.Add(new Mesh($"{PackagePath}.uemodel", ueModelArchive.GetBuffer(), convertedMesh.LODs[0].GetMaterials(options)));
+                MeshLods.Add(new Mesh($"{PackagePath}.uemodel", ueModelArchive.GetBuffer(), convertedMesh.LODs[0].GetMaterialObjects(options)));
                 return;
             }
 
             var i = -1;
-            foreach (var lod in convertedMesh.LODs)
-            {
-                i++;
-                if (lod.SkipLod)
-                {
-                    Log.Logger.Warning($"LOD {i} in mesh '{ExportName}' should be skipped");
-                    continue;
-                }
+            //foreach (var lod in convertedMesh.LODs)
+            //{
+            //    i++;
+            //    if (lod.SkipLod)
+            //    {
+            //        Log.Logger.Warning($"LOD {i} in mesh '{ExportName}' should be skipped");
+            //        continue;
+            //    }
 
-                using var Ar = new FArchiveWriter();
-                var materialExports = options.ExportMaterials ? new List<MaterialExporter2>() : null;
-                string ext;
-                switch (Options.MeshFormat)
-                {
-                    case EMeshFormat.ActorX:
-                        ext = "pskx";
-                        new ActorXMesh(lod, materialExports, originalMesh.Sockets, Options).Save(Ar);
-                        break;
-                    case EMeshFormat.Gltf2:
-                        ext = "glb";
-                        new Gltf(ExportName, lod, materialExports, Options).Save(Options.MeshFormat, Ar);
-                        break;
-                    case EMeshFormat.OBJ:
-                        ext = "obj";
-                        new Gltf(ExportName, lod, materialExports, Options).Save(Options.MeshFormat, Ar);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(Options.MeshFormat), Options.MeshFormat, null);
-                }
+            //    using var Ar = new FArchiveWriter();
+            //    var materialExports = options.ExportMaterials ? new List<MaterialExporter2>() : null;
+            //    string ext;
+            //    switch (Options.MeshFormat)
+            //    {
+            //        case EMeshFormat.ActorX:
+            //            ext = "pskx";
+            //            new ActorXMesh(lod, materialExports, originalMesh.Sockets, Options).Save(Ar);
+            //            break;
+            //        case EMeshFormat.Gltf2:
+            //            ext = "glb";
+            //            new Gltf(ExportName, lod, materialExports, Options).Save(Options.MeshFormat, Ar);
+            //            break;
+            //        case EMeshFormat.OBJ:
+            //            ext = "obj";
+            //            new Gltf(ExportName, lod, materialExports, Options).Save(Options.MeshFormat, Ar);
+            //            break;
+            //        default:
+            //            throw new ArgumentOutOfRangeException(nameof(Options.MeshFormat), Options.MeshFormat, null);
+            //    }
 
-                if (Options.LodFormat == ELodFormat.FirstLod)
-                {
-                    MeshLods.Add(new Mesh($"{PackagePath}.{ext}", Ar.GetBuffer(), materialExports ?? new List<MaterialExporter2>()));
-                    break;
-                }
-                else
-                {
-                    MeshLods.Add(new Mesh($"{PackagePath}_LOD{i}.{ext}", Ar.GetBuffer(), materialExports ?? new List<MaterialExporter2>()));
-                }
-            }
+            //    if (Options.LodFormat == ELodFormat.FirstLod)
+            //    {
+            //        MeshLods.Add(new Mesh($"{PackagePath}.{ext}", Ar.GetBuffer(), materialExports ?? new List<MaterialExporter2>()));
+            //        break;
+            //    }
+            //    else
+            //    {
+            //        MeshLods.Add(new Mesh($"{PackagePath}_LOD{i}.{ext}", Ar.GetBuffer(), materialExports ?? new List<MaterialExporter2>()));
+            //    }
+            //}
         }
 
         public MeshExporter(USkeletalMesh originalMesh, ExporterOptions options) : base(originalMesh, options)
@@ -140,63 +143,64 @@ namespace CUE4Parse_Conversion.Meshes
             {
                 using var ueModelArchive = new FArchiveWriter();
                 new UEModel(originalMesh.Name, convertedMesh, originalMesh.MorphTargets, totalSockets.ToArray(), originalMesh.PhysicsAsset, Options).Save(ueModelArchive);
-                MeshLods.Add(new Mesh($"{PackagePath}.uemodel", ueModelArchive.GetBuffer(), convertedMesh.LODs[0].GetMaterials(options)));
+                MeshLods.Add(new Mesh($"{PackagePath}.uemodel", ueModelArchive.GetBuffer(), convertedMesh.LODs[0].GetMaterialObjects(options)));
                 return;
             }
 
             var i = 0;
-            for (var lodIndex = 0; lodIndex < convertedMesh.LODs.Count; lodIndex++)
-            {
-                var lod = convertedMesh.LODs[lodIndex];
-                if (lod.SkipLod)
-                {
-                    Log.Logger.Warning($"LOD {i} in mesh '{ExportName}' should be skipped");
-                    continue;
-                }
+            //for (var lodIndex = 0; lodIndex < convertedMesh.LODs.Count; lodIndex++)
+            //{
+            //    var lod = convertedMesh.LODs[lodIndex];
+            //    if (lod.SkipLod)
+            //    {
+            //        Log.Logger.Warning($"LOD {i} in mesh '{ExportName}' should be skipped");
+            //        continue;
+            //    }
 
-                using var Ar = new FArchiveWriter();
-                var materialExports = options.ExportMaterials ? new List<MaterialExporter2>() : null;
-                var ext = "";
-                switch (Options.MeshFormat)
-                {
-                    case EMeshFormat.ActorX:
-                        ext = convertedMesh.LODs[i].NumVerts > 65536 ? "pskx" : "psk";
-                        new ActorXMesh(lod, convertedMesh.RefSkeleton, materialExports,
-                            Options.ExportMorphTargets ? originalMesh.MorphTargets : null,
-                            totalSockets.ToArray(), lodIndex, Options).Save(Ar);
-                        break;
-                    case EMeshFormat.Gltf2:
-                        ext = "glb";
-                        new Gltf(ExportName, lod, convertedMesh.RefSkeleton, materialExports, Options,
-                            Options.ExportMorphTargets ? originalMesh.MorphTargets : null,
-                            lodIndex).Save(Options.MeshFormat, Ar);
-                        break;
-                    case EMeshFormat.OBJ:
-                        ext = "obj";
-                        new Gltf(ExportName, lod, convertedMesh.RefSkeleton, materialExports, Options).Save(Options.MeshFormat, Ar);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(Options.MeshFormat), Options.MeshFormat, null);
-                }
+            //    using var Ar = new FArchiveWriter();
 
-                if (Options.LodFormat == ELodFormat.FirstLod)
-                {
-                    MeshLods.Add(new Mesh($"{PackagePath}.{ext}", Ar.GetBuffer(), materialExports ?? new List<MaterialExporter2>()));
-                    break;
-                }
-                else
-                {
-                    MeshLods.Add(new Mesh($"{PackagePath}_LOD{i}.{ext}", Ar.GetBuffer(), materialExports ?? new List<MaterialExporter2>()));
-                }
-                i++;
-            }
+            //    var materialExports = options.ExportMaterials ? new List<UMaterialInterface>() : null;
+            //    var ext = "";
+            //    switch (Options.MeshFormat)
+            //    {
+            //        case EMeshFormat.ActorX:
+            //            ext = convertedMesh.LODs[i].NumVerts > 65536 ? "pskx" : "psk";
+            //            new ActorXMesh(lod, convertedMesh.RefSkeleton, materialExports,
+            //                Options.ExportMorphTargets ? originalMesh.MorphTargets : null,
+            //                totalSockets.ToArray(), lodIndex, Options).Save(Ar);
+            //            break;
+            //        case EMeshFormat.Gltf2:
+            //            ext = "glb";
+            //            new Gltf(ExportName, lod, convertedMesh.RefSkeleton, materialExports, Options,
+            //                Options.ExportMorphTargets ? originalMesh.MorphTargets : null,
+            //                lodIndex).Save(Options.MeshFormat, Ar);
+            //            break;
+            //        case EMeshFormat.OBJ:
+            //            ext = "obj";
+            //            new Gltf(ExportName, lod, convertedMesh.RefSkeleton, materialExports, Options).Save(Options.MeshFormat, Ar);
+            //            break;
+            //        default:
+            //            throw new ArgumentOutOfRangeException(nameof(Options.MeshFormat), Options.MeshFormat, null);
+            //    }
+
+            //    if (Options.LodFormat == ELodFormat.FirstLod)
+            //    {
+            //        MeshLods.Add(new Mesh($"{PackagePath}.{ext}", Ar.GetBuffer(), materialExports ?? new List<MaterialExporter2>()));
+            //        break;
+            //    }
+            //    else
+            //    {
+            //        MeshLods.Add(new Mesh($"{PackagePath}_LOD{i}.{ext}", Ar.GetBuffer(), materialExports ?? new List<MaterialExporter2>()));
+            //    }
+            //    i++;
+            //}
         }
 
         /// <param name="baseDirectory"></param>
         /// <param name="label"></param>
         /// <param name="savedFilePath"></param>
         /// <returns>true if *ALL* lods were successfully exported</returns>
-        public override bool TryWriteToDir(DirectoryInfo baseDirectory, out string label, out string savedFilePath)
+        public override bool TryWriteToDir(DirectoryInfo baseDirectory, List<UObject> ObjectQueue, out string label, out string savedFilePath)
         {
             var b = false;
             label = string.Empty;
@@ -206,7 +210,7 @@ namespace CUE4Parse_Conversion.Meshes
             var outText = "LOD ";
             for (var i = 0; i < MeshLods.Count; i++)
             {
-                b |= MeshLods[i].TryWriteToDir(baseDirectory, out label, out savedFilePath);
+                b |= MeshLods[i].TryWriteToDir(baseDirectory, ObjectQueue, out label, out savedFilePath);
                 outText += $"{i} ";
             }
 

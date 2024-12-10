@@ -6,6 +6,9 @@ using CUE4Parse.UE4.Assets.Exports.Material;
 using CUE4Parse.UE4.Assets.Exports.Texture;
 using Newtonsoft.Json;
 using SkiaSharp;
+using CUE4Parse.UE4.Assets.Exports;
+using System.Collections.Concurrent;
+using SharpGLTF.Schema2;
 
 namespace CUE4Parse_Conversion.Materials
 {
@@ -45,7 +48,7 @@ namespace CUE4Parse_Conversion.Materials
         }
 
         private readonly object _texture = new ();
-        public override bool TryWriteToDir(DirectoryInfo baseDirectory, out string label, out string savedFilePath)
+        public override bool TryWriteToDir(DirectoryInfo baseDirectory, List<UObject> ObjectQueue, out string label, out string savedFilePath)
         {
             label = string.Empty;
             savedFilePath = string.Empty;
@@ -55,31 +58,38 @@ namespace CUE4Parse_Conversion.Materials
             File.WriteAllText(savedFilePath, _jsonData);
             label = Path.GetFileName(savedFilePath);
 
-            Parallel.ForEach(_materialData.Parameters.Textures.Values, texture =>
+            foreach (var texture in _materialData.Parameters.Textures.Values)
             {
-                if (texture is not UTexture2D t || t.Decode(Options.Platform) is not { } bitmap) return;
+                if (texture is not UTexture2D t || t.Decode(Options.Platform) is not { } bitmap)
+                    continue;
+                ObjectQueue.Add(texture);
+            }
+            //Parallel.ForEach(_materialData.Parameters.Textures.Values, texture =>
+            //{
+            //    if (texture is not UTexture2D t || t.Decode(Options.Platform) is not { } bitmap) return;
 
-                lock (_texture)
-                {
-                    var ext = Options.TextureFormat switch
-                    {
-                        ETextureFormat.Png => "png",
-                        ETextureFormat.Tga => "tga",
-                        ETextureFormat.Dds => "dds",
-                        _ => "png"
-                    };
+            //    lock (_texture)
+            //    {
+            //        var ext = Options.TextureFormat switch
+            //        {
+            //            ETextureFormat.Png => "png",
+            //            ETextureFormat.Tga => "tga",
+            //            ETextureFormat.Dds => "dds",
+            //            _ => "png"
+            //        };
                     
-                    var texturePath = FixAndCreatePath(baseDirectory, t.Owner?.Name ?? t.Name, ext);
-                    using var fs = new FileStream(texturePath, FileMode.Create, FileAccess.Write);
-                    using var data = bitmap.Encode(Options.TextureFormat, 100);
-                    using var stream = data.AsStream();
-                    stream.CopyTo(fs);
-                }
-            });
+            //        var texturePath = FixAndCreatePath(baseDirectory, t.Owner?.Name ?? t.Name, ext);
+            //        using var fs = new FileStream(texturePath, FileMode.Create, FileAccess.Write);
+            //        using var data = bitmap.Encode(Options.TextureFormat, 100);
+            //        using var stream = data.AsStream();
+            //        stream.CopyTo(fs);
+            //    }
+            //});
             if (_materialData.Parameters.Parent != null)
             {
-                var parentExport = new MaterialExporter2(_materialData.Parameters.Parent, Options);
-                parentExport.TryWriteToDir(baseDirectory, out var label1, out var savedFilePath1);
+                ObjectQueue.Add(_materialData.Parameters.Parent);
+                //var parentExport = new MaterialExporter2(_materialData.Parameters.Parent, Options);
+                //parentExport.TryWriteToDir(baseDirectory, ObjectQueue, out var label1, out var savedFilePath1);
             }
             return true;
         }

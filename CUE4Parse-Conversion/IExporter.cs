@@ -1,4 +1,6 @@
-﻿using System;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Assets.Exports.Animation;
@@ -45,7 +47,7 @@ namespace CUE4Parse_Conversion
 
     public interface IExporter
     {
-        public bool TryWriteToDir(DirectoryInfo directoryInfo, out string label, out string savedFileName);
+        public bool TryWriteToDir(DirectoryInfo directoryInfo, List<UObject> ObjectQueue, out string label, out string savedFileName);
         public bool TryWriteToZip(out byte[] zipFile);
         public void AppendToZip();
     }
@@ -71,7 +73,7 @@ namespace CUE4Parse_Conversion
             Options = options;
         }
 
-        public abstract bool TryWriteToDir(DirectoryInfo baseDirectory, out string label, out string savedFilePath);
+        public abstract bool TryWriteToDir(DirectoryInfo baseDirectory, List<UObject> ObjectQueue, out string label, out string savedFilePath);
         public abstract bool TryWriteToZip(out byte[] zipFile);
         public abstract void AppendToZip();
 
@@ -100,12 +102,13 @@ namespace CUE4Parse_Conversion
                 USkeletalMesh skeletalMesh => new MeshExporter(skeletalMesh, options),
                 USkeleton skeleton => new MeshExporter(skeleton, options),
                 UStaticMesh staticMesh => new MeshExporter(staticMesh, options),
+                UTexture2D texture2D => new TextureExporter(texture2D, options),
                 _ => throw new NotSupportedException($"export of '{export.GetType()}' is not supported yet.")
             };
         }
 
-        public bool TryWriteToDir(DirectoryInfo baseDirectory, out string label, out string savedFilePath) =>
-            _exporterBase.TryWriteToDir(baseDirectory, out label, out savedFilePath);
+        public bool TryWriteToDir(DirectoryInfo baseDirectory, List<UObject> ObjectQueue, out string label, out string savedFilePath) =>
+            _exporterBase.TryWriteToDir(baseDirectory, ObjectQueue, out label, out savedFilePath);
 
         public bool TryWriteToZip(out byte[] zipFile) => _exporterBase.TryWriteToZip(out zipFile);
 

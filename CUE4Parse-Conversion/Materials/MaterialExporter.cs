@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Assets.Exports.Material;
 using CUE4Parse.UE4.Assets.Exports.Texture;
 using CUE4Parse_Conversion.Textures;
@@ -76,7 +78,7 @@ namespace CUE4Parse_Conversion.Materials
                 _parentData = new MaterialExporter(material.Parent) { Options = Options };
         }
 
-        public override bool TryWriteToDir(DirectoryInfo baseDirectory, out string label, out string savedFilePath)
+        public override bool TryWriteToDir(DirectoryInfo baseDirectory, List<UObject> ObjectQueue, out string label, out string savedFilePath)
         {
             label = string.Empty;
             savedFilePath = string.Empty;
@@ -105,7 +107,7 @@ namespace CUE4Parse_Conversion.Materials
             }
 
             if (_parentData != null)
-                _parentData.TryWriteToDir(baseDirectory, out _, out _);
+                _parentData.TryWriteToDir(baseDirectory, ObjectQueue, out _, out _);
 
             return true;
         }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -238,7 +238,10 @@ namespace CUE4Parse_Conversion.Animations
             var refFrameIndex = animSeq.OriginalSequence.RefFrameIndex;
             var refPoseSkel = refPoseSeq?.Skeleton.Load<USkeleton>() ?? skeleton;
             var refAnimSet = refPoseSkel.ConvertAnims(refPoseSeq);
-
+            if (refAnimSet.Sequences.Count == 0)
+            {
+                return animSeq;
+            }
             FCompactPose[] additivePoses = FAnimationRuntime.LoadAsPoses(animSeq, skeleton);
             FCompactPose[] referencePoses = animSeq.OriginalSequence.RefPoseType switch
             {
@@ -248,37 +251,49 @@ namespace CUE4Parse_Conversion.Animations
                 EAdditiveBasePoseType.ABPT_LocalAnimFrame => FAnimationRuntime.LoadAsPoses(animSeq, skeleton, refFrameIndex),
                 _ => throw new ArgumentOutOfRangeException("Unsupported additive type " + animSeq.OriginalSequence.RefPoseType)
             };
-
-            // reset tracks and their size to avoid empty additive track on filled ref track
-            // or the other way around, that way we are sure all tracks can receive all frames
-            animSeq.Tracks = new List<CAnimTrack>(additivePoses[0].Bones.Length);
-            for (int i = 0; i < additivePoses[0].Bones.Length; i++)
+            if(additivePoses.Length == 0)
             {
-                animSeq.Tracks.Add(new CAnimTrack(additivePoses.Length));
+                return animSeq;
             }
-
-            var maxRefPosFrame = referencePoses.Length;
-            for (var frameIndex = 0; frameIndex < additivePoses.Length; frameIndex++)
+            try
             {
-                var addPose = additivePoses[frameIndex];
-                var refPose = (FCompactPose)referencePoses[animSeq.OriginalSequence.RefPoseType switch
+                // reset tracks and their size to avoid empty additive track on filled ref track
+                // or the other way around, that way we are sure all tracks can receive all frames
+                animSeq.Tracks = new List<CAnimTrack>(additivePoses[0].Bones.Length);
+                for (int i = 0; i < additivePoses[0].Bones.Length; i++)
                 {
-                    EAdditiveBasePoseType.ABPT_AnimScaled => frameIndex % maxRefPosFrame,
-                    _ => refFrameIndex
-                }].Clone();
-
-                switch (animSeq.OriginalSequence.AdditiveAnimType)
-                {
-                    case EAdditiveAnimationType.AAT_LocalSpaceBase:
-                        FAnimationRuntime.AccumulateLocalSpaceAdditivePoseInternal(refPose, addPose, 1);
-                        break;
-                    case EAdditiveAnimationType.AAT_RotationOffsetMeshSpace:
-                        FAnimationRuntime.AccumulateMeshSpaceRotationAdditiveToLocalPoseInternal(refPose, addPose, 1);
-                        break;
+                    animSeq.Tracks.Add(new CAnimTrack(additivePoses.Length));
                 }
 
-                refPose.PushTransformAtFrame(animSeq.Tracks, frameIndex);
+                var maxRefPosFrame = referencePoses.Length;
+                for (var frameIndex = 0; frameIndex < additivePoses.Length; frameIndex++)
+                {
+                    var addPose = additivePoses[frameIndex];
+                    var refPose = (FCompactPose) referencePoses[animSeq.OriginalSequence.RefPoseType switch
+                    {
+                        EAdditiveBasePoseType.ABPT_AnimScaled => frameIndex % maxRefPosFrame,
+                        _ => refFrameIndex
+                    }].Clone();
+
+                    switch (animSeq.OriginalSequence.AdditiveAnimType)
+                    {
+                        case EAdditiveAnimationType.AAT_LocalSpaceBase:
+                            FAnimationRuntime.AccumulateLocalSpaceAdditivePoseInternal(refPose, addPose, 1);
+                            break;
+                        case EAdditiveAnimationType.AAT_RotationOffsetMeshSpace:
+                            FAnimationRuntime.AccumulateMeshSpaceRotationAdditiveToLocalPoseInternal(refPose, addPose, 1);
+                            break;
+                    }
+
+                    refPose.PushTransformAtFrame(animSeq.Tracks, frameIndex);
+                }
             }
+            catch (IndexOutOfRangeException)
+            {
+                Console.WriteLine($"IndexOutOfRangeException: block {animSeq.Name}");
+                return animSeq;
+            }
+            
 
             if (refPoseSeq != null) // for FindTrackForBoneIndex
                 animSeq.OriginalSequence = refAnimSet.Sequences[0].OriginalSequence;

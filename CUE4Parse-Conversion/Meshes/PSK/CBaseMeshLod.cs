@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using CUE4Parse_Conversion.Materials;
 using CUE4Parse.UE4.Assets.Exports.Material;
@@ -60,6 +60,21 @@ public class CBaseMeshLod
             if (section.Material?.Load<UMaterialInterface>() is { } material)
             {
                 materials.Add(new MaterialExporter2(material, options));
+            }
+        }
+        return materials;
+    }
+    public List<UMaterialInterface> GetMaterialObjects(ExporterOptions options)
+    {
+        if (SkipLod || !options.ExportMaterials)
+            return [];
+
+        var materials = new List<UMaterialInterface>();
+        foreach (var section in Sections.Value)
+        {
+            if (section.Material?.Load<UMaterialInterface>() is { } material)
+            {
+                materials.Add(material);
             }
         }
         return materials;

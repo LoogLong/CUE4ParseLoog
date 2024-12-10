@@ -1,7 +1,10 @@
-﻿using System;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using CUE4Parse.UE4.Assets.Exports;
+using CUE4Parse.UE4.Assets.Exports.Material;
 using CUE4Parse_Conversion.Materials;
 
 namespace CUE4Parse_Conversion.Meshes
@@ -10,27 +13,27 @@ namespace CUE4Parse_Conversion.Meshes
     {
         public readonly string FileName;
         public readonly byte[] FileData;
-        public readonly List<MaterialExporter2> Materials;
+        public readonly List<UMaterialInterface> MaterialObjects;
 
-        public Mesh(string fileName, byte[] fileData, List<MaterialExporter2> materials)
+        public Mesh(string fileName, byte[] fileData, List<UMaterialInterface> materials)
         {
             FileName = fileName;
             FileData = fileData;
-            Materials = materials;
+            MaterialObjects = materials;
         }
 
         private readonly object _material = new ();
-        public override bool TryWriteToDir(DirectoryInfo baseDirectory, out string label, out string savedFilePath)
+        public override bool TryWriteToDir(DirectoryInfo baseDirectory, List<UObject> ObjectQueue, out string label, out string savedFilePath)
         {
             label = string.Empty;
             savedFilePath = string.Empty;
             if (!baseDirectory.Exists || FileData.Length <= 0) return false;
 
-            Parallel.ForEach(Materials, material =>
+            foreach (var obj in MaterialObjects)
             {
-                lock (_material) material.TryWriteToDir(baseDirectory, out _, out _);
-            });
-
+                ObjectQueue.Add(obj);
+            }
+            
             savedFilePath = FixAndCreatePath(baseDirectory, FileName);
             File.WriteAllBytes(savedFilePath, FileData);
             label = Path.GetFileName(savedFilePath);

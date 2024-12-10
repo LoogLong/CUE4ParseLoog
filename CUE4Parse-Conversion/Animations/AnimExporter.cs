@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using CUE4Parse.UE4.Assets.Exports.Animation;
@@ -9,6 +9,7 @@ using CUE4Parse_Conversion.ActorX;
 using CUE4Parse_Conversion.Animations.PSA;
 using CUE4Parse_Conversion.Animations.UEFormat;
 using CUE4Parse.UE4.Assets.Exports;
+using System.Collections.Concurrent;
 
 namespace CUE4Parse_Conversion.Animations
 {
@@ -71,7 +72,7 @@ namespace CUE4Parse_Conversion.Animations
         public AnimExporter(UAnimComposite animComposite, ExporterOptions options) : this(options, animComposite.Skeleton.Load<USkeleton>()!, animComposite) { }
         
 
-        public override bool TryWriteToDir(DirectoryInfo baseDirectory, out string label, out string savedFilePath)
+        public override bool TryWriteToDir(DirectoryInfo baseDirectory, List<UObject> ObjectQueue, out string label, out string savedFilePath)
         {
             var b = false;
             label = string.Empty;
@@ -81,7 +82,7 @@ namespace CUE4Parse_Conversion.Animations
             var outText = "SEQ ";
             for (var i = 0; i < AnimSequences.Count; i++)
             {
-                b |= AnimSequences[i].TryWriteToDir(baseDirectory, out label, out savedFilePath);
+                b |= AnimSequences[i].TryWriteToDir(baseDirectory, ObjectQueue,out label, out savedFilePath);
                 outText += $"{i} ";
             }
 
