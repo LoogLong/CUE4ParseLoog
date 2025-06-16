@@ -8,16 +8,17 @@ namespace CUE4Parse.UE4.Assets.Exports.StaticMesh;
 [JsonConverter(typeof(FStaticMeshSectionConverter))]
 public class FStaticMeshSection
 {
-    public readonly int MaterialIndex;
-    public readonly int FirstIndex;
-    public readonly int NumTriangles;
-    public readonly int MinVertexIndex;
-    public readonly int MaxVertexIndex;
-    public readonly bool bEnableCollision;
-    public readonly bool bCastShadow;
-    public readonly bool bForceOpaque;
-    public readonly bool bVisibleInRayTracing;
-    public readonly bool bAffectDistanceFieldLighting;
+    public int MaterialIndex;
+    public int FirstIndex;
+    public int NumTriangles;
+    public int MinVertexIndex;
+    public int MaxVertexIndex;
+    public bool bEnableCollision;
+    public bool bCastShadow;
+    public bool bForceOpaque;
+    public bool bVisibleInRayTracing;
+    public bool bAffectDistanceFieldLighting;
+    public int CustomData;
 
     public FStaticMeshSection(FArchive Ar)
     {
@@ -32,22 +33,13 @@ public class FStaticMeshSection
         bForceOpaque = FRenderingObjectVersion.Get(Ar) >= FRenderingObjectVersion.Type.StaticMeshSectionForceOpaqueField && Ar.ReadBoolean();
         if (Ar.Game == EGame.GAME_MortalKombat1) Ar.Position += 8; // "None" FName
         bVisibleInRayTracing = !Ar.Versions["StaticMesh.HasVisibleInRayTracing"] || Ar.ReadBoolean();
-        if (Ar.Game is EGame.GAME_Dauntless or EGame.GAME_Grounded) Ar.Position += 8;
+        if (Ar.Game is EGame.GAME_Grounded) Ar.Position += 8;
         bAffectDistanceFieldLighting = Ar.Game >= EGame.GAME_UE5_1 && Ar.ReadBoolean();
-        if (Ar.Game is EGame.GAME_RogueCompany or EGame.GAME_Grounded or EGame.GAME_RacingMaster or EGame.GAME_MetroAwakening) Ar.Position += 4;
-
-        if (Ar.Game.IsInfinityNikki())
+        if (Ar.Game is EGame.GAME_RogueCompany or EGame.GAME_Grounded or EGame.GAME_RacingMaster or EGame.GAME_MetroAwakening or EGame.GAME_Avowed) Ar.Position += 4;
+        if (Ar.Game is EGame.GAME_InfinityNikki)
         {
-            if (FX6GameCustomVersion.Get(Ar) >= FX6GameCustomVersion.Type.StaticMeshSectionChanges1)
-            {
-                _ = Ar.ReadBoolean();
-                _ = Ar.Read<uint>();
-            }
-
-            if (FX6GameCustomVersion.Get(Ar) >= FX6GameCustomVersion.Type.SkelMeshRenderAndStaticMeshSectionChanges2)
-            {
-                _ = Ar.ReadBoolean();
-            }
+            CustomData = Ar.Read<int>();
+            Ar.Position += 8;
         }
     }
 }

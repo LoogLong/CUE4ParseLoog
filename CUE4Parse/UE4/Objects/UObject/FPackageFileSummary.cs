@@ -1,5 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
+using CUE4Parse.Encryption.Aes;
 using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Assets.Readers;
 using CUE4Parse.UE4.Exceptions;
@@ -8,6 +10,7 @@ using CUE4Parse.UE4.Objects.Core.Serialization;
 using CUE4Parse.UE4.Readers;
 using CUE4Parse.UE4.Versions;
 using Newtonsoft.Json;
+using Serilog;
 using static CUE4Parse.UE4.Objects.Core.Misc.ECompressionFlags;
 
 namespace CUE4Parse.UE4.Objects.UObject
@@ -36,6 +39,7 @@ namespace CUE4Parse.UE4.Objects.UObject
         public const uint PACKAGE_FILE_TAG_SWAPPED = 0xC1832A9EU;
         public const uint PACKAGE_FILE_TAG_ACE7 = 0x37454341U; // ACE7
         private const uint PACKAGE_FILE_TAG_ONE = 0x00656E6FU; // SOD2
+        private const uint PACKAGE_FILE_TAG_NTE = 0xD5A8D56E;
 
         public readonly uint Tag;
         public FPackageFileVersion FileVersionUE;
@@ -43,7 +47,7 @@ namespace CUE4Parse.UE4.Objects.UObject
         public FCustomVersionContainer CustomVersionContainer;
         public EPackageFlags PackageFlags;
         public int TotalHeaderSize;
-        public readonly string FolderName;
+        public readonly string PackageName;
         public int NameCount;
         public int NameOffset;
         public readonly int SoftObjectPathsCount;
@@ -51,15 +55,21 @@ namespace CUE4Parse.UE4.Objects.UObject
         public readonly string? LocalizationId;
         public readonly int GatherableTextDataCount;
         public readonly int GatherableTextDataOffset;
+        public int MetaDataOffset;
         public int ExportCount;
         public int ExportOffset;
         public int ImportCount;
         public int ImportOffset;
+        public int CellExportCount;
+        public int CellExportOffset;
+        public int CellImportCount;
+        public int CellImportOffset;
         public readonly int DependsOffset;
         public readonly int SoftPackageReferencesCount;
         public readonly int SoftPackageReferencesOffset;
         public readonly int SearchableNamesOffset;
         public readonly int ThumbnailTableOffset;
+        public FSHAHash SavedHash;
         public readonly FGuid Guid;
         public readonly FGuid PersistentGuid;
         public readonly FGenerationInfo[] Generations;
@@ -81,7 +91,7 @@ namespace CUE4Parse.UE4.Objects.UObject
         public FPackageFileSummary()
         {
             CustomVersionContainer = new FCustomVersionContainer();
-            FolderName = string.Empty;
+            PackageName = string.Empty;
             Generations = Array.Empty<FGenerationInfo>();
             ChunkIds = Array.Empty<int>();
         }
@@ -103,8 +113,14 @@ namespace CUE4Parse.UE4.Objects.UObject
              *		-6 indicates optimizations to how custom versions are being serialized
              *		-7 indicates the texture allocation info has been removed from the summary
              *		-8 indicates that the UE5 version has been added to the summary
+             *      -9 indicates a contractual change in when early exits are required based on FileVersionTooNew. At or
+		     *		   after this LegacyFileVersion, we support changing the PackageFileSummary serialization format for
+		     *		   all bytes serialized after FileVersionLicensee, and that format change can be conditional on any
+		     *		   of the versions parsed before that point. All packageloaders that understand the -9
+		     *		   legacyfileformat are required to early exit without further serialization at that point if
+		     *		   FileVersionTooNew is true.
              */
-            const int CurrentLegacyFileVersion = -8;
+            const int CurrentLegacyFileVersion = -9;
             var legacyFileVersion = CurrentLegacyFileVersion;
 
             if (Tag == PACKAGE_FILE_TAG_ONE) // SOD2, "one"
@@ -115,9 +131,34 @@ namespace CUE4Parse.UE4.Objects.UObject
                 bUnversioned = true;
                 FileVersionUE = Ar.Ver;
                 CustomVersionContainer = new FCustomVersionContainer();
-                FolderName = "None";
+                PackageName = "None";
                 PackageFlags = EPackageFlags.PKG_FilterEditorOnly;
                 goto afterPackageFlags;
+            }
+
+            if (Tag == PACKAGE_FILE_TAG_NTE && Ar.Game == EGame.GAME_NevernessToEverness)
+            {
+                var keyData = Ar.Read<FGuid>();
+                var decryptedDataLength = Ar.Read<int>();
+                _ = Ar.Read<int>(); // paddedEncryptedDataLength
+                var encryptedData = Ar.ReadArray<byte>();
+                var isKeyObfuscated = Ar.ReadBoolean();
+
+                if (isKeyObfuscated)
+                {
+                    keyData = new FGuid(
+                        keyData.A ^ keyData.D,
+                        keyData.B ^ keyData.C,
+                        keyData.B,
+                        keyData.A);
+                }
+
+                var key = new FAesKey(Encoding.UTF8.GetBytes(keyData.ToString()));
+                var paddedDecryptedData = encryptedData.Decrypt(key);
+                var decryptedData = paddedDecryptedData[..decryptedDataLength];
+
+                Ar = new FByteArchive("NTE - Decrypted FPackageFileSummary", decryptedData, Ar.Versions);
+                Tag = Ar.Read<uint>();
             }
 
             if (Tag != PACKAGE_FILE_TAG && Tag != PACKAGE_FILE_TAG_SWAPPED)
@@ -155,6 +196,7 @@ namespace CUE4Parse.UE4.Objects.UObject
                 }
 
                 FileVersionUE.FileVersionUE4 = Ar.Read<int>();
+                if (Ar.Game == EGame.GAME_DaysGone) FileVersionUE.FileVersionUE4 = 498;
 
                 if (legacyFileVersion <= -8)
                 {
@@ -162,6 +204,21 @@ namespace CUE4Parse.UE4.Objects.UObject
                 }
 
                 FileVersionLicenseeUE = Ar.Read<EUnrealEngineObjectLicenseeUEVersion>();
+
+                if (FileVersionUE != EUnrealEngineObjectUE4Version.DETERMINE_BY_GAME &&
+                    FileVersionUE < EUnrealEngineObjectUE4Version.OLDEST_LOADABLE_PACKAGE ||
+                    FileVersionUE > EUnrealEngineObjectUE4Version.AUTOMATIC_VERSION ||
+                    FileVersionUE > EUnrealEngineObjectUE5Version.AUTOMATIC_VERSION)
+                {
+                    Log.Warning("File version is too new or too old");
+                }
+
+                if (FileVersionUE >= EUnrealEngineObjectUE5Version.PACKAGE_SAVED_HASH)
+                {
+                    SavedHash = new FSHAHash(Ar);
+                    TotalHeaderSize = Ar.Read<int>();
+                }
+
                 CustomVersionContainer = new FCustomVersionContainer(Ar, FCustomVersionContainer.DetermineSerializationFormat(legacyFileVersion));
 
                 if (Ar.Versions.CustomVersions == null && CustomVersionContainer.Versions.Length > 0)
@@ -192,8 +249,12 @@ namespace CUE4Parse.UE4.Objects.UObject
                 throw new ParserException("Can't load legacy UE3 file");
             }
 
-            TotalHeaderSize = Ar.Read<int>();
-            FolderName = Ar.ReadFString(); // PackageGroup
+            if (FileVersionUE < EUnrealEngineObjectUE5Version.PACKAGE_SAVED_HASH)
+            {
+                TotalHeaderSize = Ar.Read<int>();
+            }
+
+            PackageName = Ar.ReadFString(); // PackageGroup
             PackageFlags = Ar.Read<EPackageFlags>();
 
             /*if (PackageFlags.HasFlag(EPackageFlags.PKG_FilterEditorOnly))
@@ -229,6 +290,20 @@ namespace CUE4Parse.UE4.Objects.UObject
             ExportOffset = Ar.Read<int>();
             ImportCount = Ar.Read<int>();
             ImportOffset = Ar.Read<int>();
+
+            if (FileVersionUE >= EUnrealEngineObjectUE5Version.VERSE_CELLS)
+            {
+                CellExportCount = Ar.Read<int>();
+                CellExportOffset = Ar.Read<int>();
+                CellImportCount = Ar.Read<int>();
+                CellImportOffset = Ar.Read<int>();
+            }
+
+            if (FileVersionUE >= EUnrealEngineObjectUE5Version.METADATA_SERIALIZATION_OFFSET)
+            {
+                MetaDataOffset = Ar.Read<int>();
+            }
+
             DependsOffset = Ar.Read<int>();
 
             if (FileVersionUE < EUnrealEngineObjectUE4Version.OLDEST_LOADABLE_PACKAGE || FileVersionUE > EUnrealEngineObjectUE4Version.AUTOMATIC_VERSION)
@@ -251,9 +326,12 @@ namespace CUE4Parse.UE4.Objects.UObject
 
             ThumbnailTableOffset = Ar.Read<int>();
 
-            if (Ar.Game is EGame.GAME_Valorant or EGame.GAME_HYENAS) Ar.Position += 8;
+            if (FileVersionUE < EUnrealEngineObjectUE5Version.PACKAGE_SAVED_HASH)
+            {
+                Guid = Ar.Read<FGuid>();
+            }
 
-            Guid = Ar.Read<FGuid>();
+            if (Ar.Game is EGame.GAME_Valorant or EGame.GAME_HYENAS) Ar.Position += 8;
 
             if (!PackageFlags.HasFlag(EPackageFlags.PKG_FilterEditorOnly))
             {

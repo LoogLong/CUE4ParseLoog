@@ -5,6 +5,7 @@ using CUE4Parse.UE4.Objects.Core.Math;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.Versions;
 using CUE4Parse.Utils;
+using Newtonsoft.Json;
 
 namespace CUE4Parse.UE4.Objects.ControlRig;
 
@@ -34,6 +35,7 @@ public struct FRigCurrentAndInitialTransform(FAssetArchive Ar)
 
 public class FRigBaseElement
 {
+    [JsonIgnore]
     public URigHierarchy? Owner;
     public FRigElementKey LoadedKey;
 
@@ -636,7 +638,10 @@ public enum ERigElementType : byte
     Control = 4,
     Curve = 8,
     RigidBody = 16,
+    Physics = 16,
     Reference = 32,
     Connector = 64,
-    Socket = 128
+    Socket = 128,
+
+    All = Bone | Null | Control | Curve | Physics | Reference | Connector | Socket,
 }

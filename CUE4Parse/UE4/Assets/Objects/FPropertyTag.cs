@@ -81,6 +81,7 @@ public class FPropertyTag
     public FName PropertyType;
     public int Size;
     public int ArrayIndex;
+    public int? ArraySize;
     public FPropertyTagData? TagData;
     public bool HasPropertyGuid;
     public FGuid? PropertyGuid;
@@ -92,16 +93,22 @@ public class FPropertyTag
             : PropertyTagFlags.HasFlag(EPropertyTagFlags.HasBinaryOrNativeSerialize)
                 ? EPropertyTagSerializeType.BinaryOrNative : EPropertyTagSerializeType.Property;
 
+    /// <summary>
+    /// EPropertyTagFlags.HasArrayIndex is only reliable on UE5 games
+    /// ArrayIndex > 0 is used as a fallback for UE4 games but in this case IsIndexed will be false on the first element of the array
+    /// </summary>
+    public bool IsIndexed => PropertyTagFlags.HasFlag(EPropertyTagFlags.HasArrayIndex) || ArrayIndex > 0;
 
     public FPropertyTag(FAssetArchive Ar, PropertyInfo info, ReadType type)
     {
         Name = new FName(info.Name);
         PropertyType = new FName(info.MappingType.Type);
         ArrayIndex = info.Index;
+        ArraySize = info.ArraySize;
         TagData = new FPropertyTagData(info.MappingType);
         HasPropertyGuid = false;
         PropertyGuid = null;
-        PropertyTagFlags = info.ArraySize > 1 ? EPropertyTagFlags.HasArrayIndex : EPropertyTagFlags.None;
+        PropertyTagFlags = ArraySize > 1 ? EPropertyTagFlags.HasArrayIndex : EPropertyTagFlags.None;
 
         var pos = Ar.Position;
         try
@@ -188,7 +195,7 @@ public class FPropertyTag
         var finalPos = pos + Size;
         try
         {
-            Tag = FPropertyTagType.ReadPropertyTagType(Ar, PropertyType.Text, TagData, ReadType.NORMAL);
+            Tag = FPropertyTagType.ReadPropertyTagType(Ar, PropertyType.Text, TagData, ReadType.NORMAL, Size);
 #if DEBUG
             if (finalPos != Ar.Position)
             {
@@ -210,6 +217,18 @@ public class FPropertyTag
             // Always seek to calculated position, no need to crash
             Ar.Position = finalPos;
         }
+    }
+
+    public FPropertyTag(FName name, FName propertyType, int size, int arrayIndex, FPropertyTagData? tagData, bool hasPropertyGuid, FGuid? propertyGuid, FPropertyTagType? tag)
+    {
+        Name = name;
+        PropertyType = propertyType;
+        Size = size;
+        ArrayIndex = arrayIndex;
+        TagData = tagData;
+        HasPropertyGuid = hasPropertyGuid;
+        PropertyGuid = propertyGuid;
+        Tag = tag;
     }
 
     public override string ToString() => $"{Name.Text}  -->  {Tag?.ToString() ?? "Failed to parse"}";

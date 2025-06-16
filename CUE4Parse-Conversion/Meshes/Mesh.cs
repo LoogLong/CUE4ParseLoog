@@ -27,7 +27,7 @@ namespace CUE4Parse_Conversion.Meshes
         {
             label = string.Empty;
             savedFilePath = string.Empty;
-            if (!baseDirectory.Exists || FileData.Length <= 0) return false;
+            if (FileData.Length <= 0) return false;
 
             foreach (var obj in MaterialObjects)
             {
@@ -35,7 +35,7 @@ namespace CUE4Parse_Conversion.Meshes
             }
             
             savedFilePath = FixAndCreatePath(baseDirectory, FileName);
-            File.WriteAllBytes(savedFilePath, FileData);
+            File.WriteAllBytesAsync(savedFilePath, FileData);
             label = Path.GetFileName(savedFilePath);
             return File.Exists(savedFilePath);
         }

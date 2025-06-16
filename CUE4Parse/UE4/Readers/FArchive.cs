@@ -181,7 +181,7 @@ namespace CUE4Parse.UE4.Readers
             var elementSize = Read<int>();
             var elementCount = Read<int>();
             if (elementCount == 0)
-                return Array.Empty<T>();
+                return [];
 
             var pos = Position;
             T[] array = ReadArray<T>(elementCount);
@@ -320,7 +320,7 @@ namespace CUE4Parse.UE4.Readers
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public string ReadString()
+        public virtual string ReadString()
         {
             var length = Read7BitEncodedInt();
             if (length <= 0)

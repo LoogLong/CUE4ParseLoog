@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Assets.Exports.Animation;
 using CUE4Parse.UE4.Assets.Exports.Material;
@@ -10,10 +11,14 @@ using CUE4Parse.UE4.Assets.Exports.StaticMesh;
 using CUE4Parse.UE4.Assets.Exports.Texture;
 using CUE4Parse.Utils;
 using CUE4Parse_Conversion.Animations;
+using CUE4Parse_Conversion.Landscape;
 using CUE4Parse_Conversion.Materials;
 using CUE4Parse_Conversion.Meshes;
+using CUE4Parse_Conversion.PoseAsset;
 using CUE4Parse_Conversion.Textures;
 using CUE4Parse_Conversion.UEFormat.Enums;
+using CUE4Parse.UE4.Assets.Exports.Actor;
+using CUE4Parse.UE4.Assets.Exports.Nanite;
 
 namespace CUE4Parse_Conversion
 {
@@ -21,7 +26,9 @@ namespace CUE4Parse_Conversion
     {
         public ELodFormat LodFormat;
         public EMeshFormat MeshFormat;
+        public ENaniteMeshFormat NaniteMeshFormat;
         public EAnimFormat AnimFormat;
+        public EPoseFormat PoseFormat;
         public EMaterialFormat MaterialFormat;
         public ETextureFormat TextureFormat;
         public EFileCompressionFormat CompressionFormat;
@@ -34,6 +41,7 @@ namespace CUE4Parse_Conversion
         {
             LodFormat = ELodFormat.FirstLod;
             MeshFormat = EMeshFormat.ActorX;
+            NaniteMeshFormat = ENaniteMeshFormat.OnlyNaniteLOD;
             AnimFormat = EAnimFormat.ActorX;
             MaterialFormat = EMaterialFormat.AllLayersNoRef;
             TextureFormat = ETextureFormat.Png;
@@ -68,7 +76,7 @@ namespace CUE4Parse_Conversion
         protected ExporterBase(UObject export, ExporterOptions options)
         {
             var p = export.GetPathName();
-            PackagePath = p.SubstringBeforeLast('.');
+            PackagePath = export.Owner?.Name ?? p.SubstringBeforeLast("."); // hm? (export.Owner?.Provider?.FixPath(p) ?? p).SubstringBeforeLast('.');
             ExportName = p.SubstringAfterLast('.');
             Options = options;
         }
@@ -76,6 +84,19 @@ namespace CUE4Parse_Conversion
         public abstract bool TryWriteToDir(DirectoryInfo baseDirectory, List<UObject> ObjectQueue, out string label, out string savedFilePath);
         public abstract bool TryWriteToZip(out byte[] zipFile);
         public abstract void AppendToZip();
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        protected string GetExportSavePath()
+        {
+            return GetExportSavePath(PackagePath, ExportName);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string GetExportSavePath(string packagePath, string exportName)
+        {
+            var path = packagePath.SubstringAfterLast('/').Equals(exportName, StringComparison.InvariantCulture) ? packagePath : packagePath + '/' + exportName;
+            return path[0] == '/' ? path[1..] : path;
+        }
 
         protected string FixAndCreatePath(DirectoryInfo baseDirectory, string fullPath, string? ext = null)
         {
@@ -102,7 +123,7 @@ namespace CUE4Parse_Conversion
                 USkeletalMesh skeletalMesh => new MeshExporter(skeletalMesh, options),
                 USkeleton skeleton => new MeshExporter(skeleton, options),
                 UStaticMesh staticMesh => new MeshExporter(staticMesh, options),
-                UTexture2D texture2D => new TextureExporter(texture2D, options),
+                ALandscapeProxy landscape => new LandscapeExporter(landscape, null, options),
                 _ => throw new NotSupportedException($"export of '{export.GetType()}' is not supported yet.")
             };
         }

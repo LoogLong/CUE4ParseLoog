@@ -1,14 +1,18 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using CUE4Parse_Conversion.Textures;
 using CUE4Parse.UE4.Assets.Exports.Material;
 using CUE4Parse.UE4.Assets.Exports.Texture;
+using CUE4Parse.Utils;
 using Newtonsoft.Json;
 using SkiaSharp;
 using CUE4Parse.UE4.Assets.Exports;
 using System.Collections.Concurrent;
 using SharpGLTF.Schema2;
+using static CUE4Parse_Conversion.Textures.TextureEncoder;
+
 
 namespace CUE4Parse_Conversion.Materials
 {
@@ -38,6 +42,9 @@ namespace CUE4Parse_Conversion.Materials
         public MaterialExporter2(UUnrealMaterial? unrealMaterial, ExporterOptions options) : this(options)
         {
             if (unrealMaterial == null) return;
+            _internalFilePath = (unrealMaterial.Owner?.Provider?.FixPath(unrealMaterial.Owner.Name) ??
+                                 unrealMaterial.Name).SubstringBeforeLast('.');
+
             _internalFilePath = unrealMaterial.Owner?.Name ?? unrealMaterial.Name;
             _jsonData = JsonConvert.SerializeObject(unrealMaterial, Formatting.Indented);
             unrealMaterial.GetParams(_materialData.Parameters, Options.MaterialFormat);
@@ -52,9 +59,9 @@ namespace CUE4Parse_Conversion.Materials
         {
             label = string.Empty;
             savedFilePath = string.Empty;
-            if (!baseDirectory.Exists) return false;
 
             savedFilePath = FixAndCreatePath(baseDirectory, _internalFilePath, "json");
+            File.WriteAllTextAsync(savedFilePath, JsonConvert.SerializeObject(_materialData, Formatting.Indented));
             File.WriteAllText(savedFilePath, _jsonData);
             label = Path.GetFileName(savedFilePath);
 

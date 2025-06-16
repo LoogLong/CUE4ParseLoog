@@ -22,5 +22,6 @@ public class Constants
 
     public const int DXT_BITS_PER_PIXEL = 4;
 
-    public const string DETEX_DLL_NAME = "Detex.dll";
+    public const float Byte_Bone_Scale = 1.0f / byte.MaxValue;
+    public const float UShort_Bone_Scale = 1.0f / ushort.MaxValue;
 }

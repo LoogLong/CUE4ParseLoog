@@ -38,6 +38,12 @@ public static class FRigVMObjectVersion
         // Removing unused tooltip property from frunction header
         VMRemoveTooltipFromFunctionHeader,
 
+        // Removing library node FSoftObjectPath from FRigVMGraphFunctionIdentifier
+        RemoveLibraryNodeReferenceFromFunctionIdentifier,
+
+        // Adding variant struct to function identifier
+        AddVariantToFunctionIdentifier,
+
         // Adding variant to every RigVM asset
         AddVariantToRigVMAssets,
 
@@ -50,6 +56,19 @@ public static class FRigVMObjectVersion
         // Storing user interface relevant category expansion
         FunctionHeaderLayoutStoresCategoryExpansion,
 
+        // Storing function graph collapse node content as part of the header
+        RigVMSaveSerializedGraphInGraphFunctionDataAsByteArray,
+
+        // VM Bytecode Stores the Public Context Path as a FTopLevelAssetPath
+        VMBytecodeStorePublicContextPathAsTopLevelAssetPath,
+
+        // Serialized instruction offsets are now int32 rather than uint16, NumBytes has been removed
+        // from RigVMCopyOp
+        ByteCodeCleanup,
+
+        // The VM stores a local snapshot registry to use in cooked environments instead of the shared global registry
+        LocalizedRegistry,
+
         // -----<new versions can be added above this line>-------------------------------------------------
         VersionPlusOne,
         LatestVersion = VersionPlusOne - 1,
@@ -60,16 +79,16 @@ public static class FRigVMObjectVersion
     public static Type Get(FArchive Ar)
     {
         var ver = Ar.CustomVer(GUID);
-        if (ver >= 0)
+        if (ver != -1)
             return (Type) ver;
 
         return Ar.Game switch
         {
-            < EGame.GAME_UE5_2 => (Type) (-1),
-                EGame.GAME_MetroAwakening => (Type) (-1),
-            < EGame.GAME_UE5_3 => Type.BeforeCustomVersionWasAdded,
+            < EGame.GAME_UE5_3 => (Type) (-1),
             < EGame.GAME_UE5_4 => Type.PredicatesAddedToExecuteOps,
             < EGame.GAME_UE5_5 => Type.VMRemoveTooltipFromFunctionHeader,
+            < EGame.GAME_UE5_6 => Type.FunctionHeaderLayoutStoresCategoryExpansion,
+            < EGame.GAME_UE5_7 => Type.ByteCodeCleanup,
             _ => Type.LatestVersion
         };
     }
