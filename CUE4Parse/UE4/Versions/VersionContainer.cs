@@ -74,10 +74,10 @@ namespace CUE4Parse.UE4.Versions
             Options["MorphTarget"] = true;
 
             // structs
-            Options["Vector_NetQuantize_AsStruct"] = false;
+            Options["Vector_NetQuantize_AsStruct"] = Game >= GAME_UE5_0;
 
             // fields
-            Options["RawIndexBuffer.HasShouldExpandTo32Bit"] = Game >= GAME_UE4_25;
+            Options["RawIndexBuffer.HasShouldExpandTo32Bit"] = Game >= GAME_UE4_25 && Game != GAME_DeltaForceHawkOps;
             Options["ShaderMap.UseNewCookedFormat"] = Game >= GAME_UE5_0;
             Options["SkeletalMesh.UseNewCookedFormat"] = Game >= GAME_UE4_24;
             Options["SkeletalMesh.HasRayTracingData"] = Game is >= GAME_UE4_27 or GAME_UE4_25_Plus;
@@ -86,7 +86,7 @@ namespace CUE4Parse.UE4.Versions
             Options["StaticMesh.HasVisibleInRayTracing"] = Game >= GAME_UE4_26;
             Options["StaticMesh.UseNewCookedFormat"] = Game >= GAME_UE4_23;
             Options["VirtualTextures"] = Game >= GAME_UE4_23;
-            Options["SoundWave.UseAudioStreaming"] = Game >= GAME_UE4_25 && Game != GAME_UE4_28 && Game != GAME_GTATheTrilogyDefinitiveEdition && Game != GAME_ReadyOrNot && Game != GAME_BladeAndSoul; // A lot of games use this, but some don't, which causes issues.
+            Options["SoundWave.UseAudioStreaming"] = Game >= GAME_UE4_25 && OverrideUseAudioStreaming(); // A lot of games use this, but some don't, which causes issues.
             Options["AnimSequence.HasCompressedRawSize"] = Game >= GAME_UE4_17; // Early 4.17 builds don't have this, and some custom engine builds don't either.
             Options["StaticMesh.HasNavCollision"] = Ver >= EUnrealEngineObjectUE4Version.STATIC_MESH_STORE_NAV_COLLISION && Game != GAME_GearsOfWar4 && Game != GAME_TEKKEN7;
 
@@ -107,6 +107,11 @@ namespace CUE4Parse.UE4.Versions
             }
         }
 
+        private bool OverrideUseAudioStreaming()
+        {
+            return Game is not (GAME_UE4_28 or GAME_GTATheTrilogyDefinitiveEdition or GAME_ReadyOrNot or GAME_BladeAndSoul or GAME_Stray);
+        }
+
         private void InitMapStructTypes()
         {
             MapStructTypes.Clear();
@@ -115,7 +120,9 @@ namespace CUE4Parse.UE4.Versions
             MapStructTypes["Tracks"] = new KeyValuePair<string, string>("MovieSceneTrackIdentifier", null);
             MapStructTypes["SubSequences"] = new KeyValuePair<string, string>("MovieSceneSequenceID", null);
             MapStructTypes["Hierarchy"] = new KeyValuePair<string, string>("MovieSceneSequenceID", null);
-            MapStructTypes["TrackSignatureToTrackIdentifier"] = new KeyValuePair<string, string>("Guid", "MovieSceneTrackIdentifier");
+            MapStructTypes["TrackSignatureToTrackIdentifier"] = Game < EGame.GAME_UE4_19
+                ? new KeyValuePair<string, string>("Guid", "FMovieSceneTrackIdentifiers")
+                : new KeyValuePair<string, string>("Guid", "MovieSceneTrackIdentifier");
             MapStructTypes["UserParameterRedirects"] = new KeyValuePair<string, string>("NiagaraVariable", "NiagaraVariable");
 
             if (_mapStructTypesOverrides == null) return;

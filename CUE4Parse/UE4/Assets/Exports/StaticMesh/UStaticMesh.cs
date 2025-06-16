@@ -1,6 +1,5 @@
 using System;
 using CUE4Parse.UE4.Assets.Readers;
-using CUE4Parse.UE4.Objects.Core.Math;
 using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Objects.Engine;
 using CUE4Parse.UE4.Objects.UObject;
@@ -58,6 +57,11 @@ public class UStaticMesh : UObject
         if (bCooked)
             RenderData = new FStaticMeshRenderData(Ar);
 
+        if (Ar.Game == EGame.GAME_WutheringWaves && GetOrDefault<bool>("bUseKuroLODDistance") && Ar.ReadBoolean())
+        {
+            Ar.Position += 64; // 8 per-platform floats
+        }
+
         if (bCooked && Ar.Game is >= EGame.GAME_UE4_20 and < EGame.GAME_UE5_0 && Ar.Game != EGame.GAME_DreamStar) // DS removed this for some reason
         {
             var bHasOccluderData = Ar.ReadBoolean();
@@ -70,8 +74,8 @@ public class UStaticMesh : UObject
                 }
                 else
                 {
-                    Ar.ReadArray<FVector>(); // Vertices
-                    Ar.ReadArray<ushort>();  // Indices
+                    Ar.SkipFixedArray(12); // Vertices
+                    Ar.SkipFixedArray(2); // Indices
                 }
 
             }
@@ -107,8 +111,13 @@ public class UStaticMesh : UObject
             }
         }
 
-        if (Ar.Game == EGame.GAME_OutlastTrials) Ar.Position += 1;
-        if (Ar.Game == EGame.GAME_Farlight84) Ar.Position += 4;
+        Ar.Position += Ar.Game switch
+        {
+            EGame.GAME_OutlastTrials => 1,
+            EGame.GAME_Farlight84 or EGame.GAME_DuneAwakening => 4,
+            EGame.GAME_DaysGone => Ar.Read<int>() * 4,
+            _ => 0
+        };
     }
 
     protected internal override void WriteJson(JsonWriter writer, JsonSerializer serializer)

@@ -12,7 +12,7 @@ using Newtonsoft.Json;
 
 namespace CUE4Parse.UE4.Assets.Exports.SkeletalMesh;
 
-public class USkeletalMesh : UObject
+public partial class USkeletalMesh : UObject
 {
     public FBoxSphereBounds ImportedBounds { get; private set; }
     public FSkeletalMaterial[] SkeletalMaterials { get; private set; }
@@ -101,6 +101,8 @@ public class USkeletalMesh : UObject
                     var NaniteResources = new FNaniteResources(Ar);
                 }
 
+                if (Ar.Game == EGame.GAME_DeadzoneRogue) Ar.Position += 4;
+
                 if (useNewCookedFormat)
                 {
                     var numInlinedLODs = Ar.Read<byte>();
@@ -141,6 +143,12 @@ public class USkeletalMesh : UObject
     public void PopulateMorphTargetVerticesData()
     {
         if (LODModels is null || MorphTargets.Length == 0) return;
+
+        if (Owner?.Provider?.Versions.Game is EGame.GAME_MortalKombat1)
+        {
+            PopulateMorphTargetVerticesDataMK1();
+            return;
+        }
 
         var maxLodLevel = -1;
         for (int i = 0; i < LODModels.Length; i++)

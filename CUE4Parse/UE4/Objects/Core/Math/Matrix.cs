@@ -15,6 +15,14 @@ namespace CUE4Parse.UE4.Objects.Core.Math
         Z,
     }
 
+    public readonly struct FMatrix3x4 : IUStruct
+    {
+        public readonly float M00, M01, M02;
+        public readonly float M10, M11, M12;
+        public readonly float M20, M21, M22;
+        public readonly float M30, M31, M32;
+    }
+
     public class FMatrix : IUStruct
     {
         public static FMatrix Identity => new(
@@ -49,6 +57,14 @@ namespace CUE4Parse.UE4.Objects.Core.Math
             M10 = m10; M11 = m11; M12 = m12; M13 = m13;
             M20 = m20; M21 = m21; M22 = m22; M23 = m23;
             M30 = m30; M31 = m31; M32 = m32; M33 = m33;
+        }
+
+        public FMatrix(FVector inX, FVector inY, FVector inZ, FVector inW)
+        {
+            M00 = inX.X; M01 = inX.Y; M02 = inX.Z; M03 = 0.0f;
+            M10 = inY.X; M11 = inY.Y; M12 = inY.Z; M13 = 0.0f;
+            M20 = inZ.X; M21 = inZ.Y; M22 = inZ.Z; M23 = 0.0f;
+            M30 = inW.X; M31 = inW.Y; M32 = inW.Z; M33 = 1.0f;
         }
 
         public FMatrix(FArchive Ar) : this(Ar, Ar.Ver >= EUnrealEngineObjectUE5Version.LARGE_WORLD_COORDINATES) { }
@@ -489,6 +505,39 @@ namespace CUE4Parse.UE4.Objects.Core.Math
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public FQuat ToQuat() => new(this);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool MakeFrustumPlane(float A, float B, float C, float D, out FPlane plane)
+        {
+            var	LengthSquared = A * A + B * B + C * C;
+            if (LengthSquared > 0.00001f * 0.00001f)
+            {
+                var	InvLength = LengthSquared.InvSqrt();
+                plane = new FPlane(-A * InvLength, -B * InvLength, -C * InvLength, D * InvLength);
+                return true;
+            }
+
+            plane = default;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool GetFrustumNearPlane(out FPlane plane) => MakeFrustumPlane(M03 - M02, M13 - M12, M23 - M22, M33 - M32, out plane);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool GetFrustumFarPlane(out FPlane plane) => MakeFrustumPlane(M02, M12, M22, M32, out plane);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool GetFrustumLeftPlane(out FPlane plane) => MakeFrustumPlane(M03 + M00, M13 + M10, M23 + M20, M33 + M30, out plane);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool GetFrustumRightPlane(out FPlane plane) => MakeFrustumPlane(M03 - M00, M13 - M10, M23 - M20, M33 - M30, out plane);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool GetFrustumTopPlane(out FPlane plane) => MakeFrustumPlane(M03 - M01, M13 - M11, M23 - M21, M33 - M31, out plane);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool GetFrustumBottomPlane(out FPlane plane) => MakeFrustumPlane(M03 + M01, M13 + M11, M23 + M21, M33 + M31, out plane);
 
         public override string ToString() => $"[{M00:F1} {M01:F1} {M02:F1} {M03:F1}] [{M10:F1} {M11:F1} {M12:F1} {M13:F1}] [{M20:F1} {M21:F1} {M22:F1} {M23:F1}] [{M30:F1} {M31:F1} {M32:F1} {M33:F1}]";
     }

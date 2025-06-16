@@ -18,12 +18,13 @@ public enum ReadType : byte
     ZERO,
     NORMAL,
     MAP,
-    ARRAY
+    ARRAY,
+    OPTIONAL
 }
 
 public abstract class FPropertyTagType<T> : FPropertyTagType
 {
-    public T? Value { get; protected set; }
+    public T? Value { get; internal set; }
 
     public override object? GenericValue => Value;
 
@@ -100,11 +101,11 @@ public abstract class FPropertyTagType
 
     public abstract override string ToString();
 
-    internal static FPropertyTagType? ReadPropertyTagType(FAssetArchive Ar, string propertyType, FPropertyTagData? tagData, ReadType type)
+    internal static FPropertyTagType? ReadPropertyTagType(FAssetArchive Ar, string propertyType, FPropertyTagData? tagData, ReadType type, int size = 0)
     {
         var tagType = propertyType switch
         {
-            "ArrayProperty" => new ArrayProperty(Ar, tagData, type),
+            "ArrayProperty" => new ArrayProperty(Ar, tagData, type, size),
             "AssetObjectProperty" => new AssetObjectProperty(Ar, type),
             "AssetClassProperty" => new AssetObjectProperty(Ar, type),
             "BoolProperty" => new BoolProperty(Ar, tagData, type),

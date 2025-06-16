@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using CUE4Parse.UE4.Assets.Exports.Texture;
@@ -42,77 +43,80 @@ namespace CUE4Parse.UE4.Assets.Exports.Material
         /// AND POSSIBLY RE-USE THE REGEX FOR BOTH UMaterial & UMaterialInstanceConstant
         /// </summary>
 
-        public static readonly string[][] Diffuse = {
-            new []
-            {
-                "Trunk_BaseColor", "ShadedDiffuse", "LitDiffuse",
-                "Background Diffuse", "BG Diffuse Texture", "Diffuse", "Diffuse_1", "DiffuseTexture", "DiffuseMap", "Diffuse A", "Diffuse A Map", "Diffuse Top", "Diffuse Side", "Base Diffuse", "Diffuse Base", "Diffuse Base Map", "Diffuse Color Map", "DiffuseLayer1",
-                "Albedo", "ALB", "TextureAlbedo",
-                "Base Color Texture", "BaseColorTexture", "Base_Color", "Base Color", "BaseColor", "Base Texture Color", "BaseColorA", "BC", "Color", "CO", "CO_", "CO_1", "Base_CO",
-                "Tex", "Tex_Color", "TexColor", "Tex_BaseColor", "AlbedMap", "Tex_Colormap",
-                "Decal_Texture", "PetalDetailMap", "CliffTexture", "M1_T_BC", "Skin Diffuse"
-            },
-            new []{ "Background Diffuse 2", "Diffuse_Texture_2", "DiffuseLayer2", "Diffuse B", "Diffuse B Map", "BaseColorB", "CO_2", "M2_T_BC" },
-            new []{ "Background Diffuse 3", "Diffuse_Texture_3", "DiffuseLayer3", "Diffuse C", "Diffuse C Map", "BaseColorC", "CO_3", "M3_T_BC" },
-            new []{ "Background Diffuse 4", "Diffuse_Texture_4", "DiffuseLayer4", "Diffuse D", "Diffuse D Map", "BaseColorD", "CO_4", "M4_T_BC" },
-            new []{ "Background Diffuse 5", "Diffuse_Texture_5", "DiffuseLayer5", "Diffuse E", "Diffuse E Map", "BaseColorE", "CO_5", "M5_T_BC" },
-            new []{ "Background Diffuse 6", "Diffuse_Texture_6", "DiffuseLayer6", "Diffuse F", "Diffuse F Map", "BaseColorF", "CO_6", "M6_T_BC" },
-            new []{ "Background Diffuse 7", "Diffuse_Texture_7", "DiffuseLayer7", "Diffuse G", "Diffuse G Map", "BaseColorG", "CO_7", "M7_T_BC" },
-            new []{ "Background Diffuse 8", "Diffuse_Texture_8", "DiffuseLayer8", "Diffuse H", "Diffuse H Map", "BaseColorH", "CO_8", "M8_T_BC" }
-        };
+    public static readonly string[][] Diffuse =
+    [
+        [
+            "Trunk_BaseColor", "ShadedDiffuse", "LitDiffuse",
+            "Background Diffuse", "BG Diffuse Texture", "Diffuse", "Diffuse_1", "DiffuseTexture", "DiffuseMap", "Diffuse A",
+            "Diffuse A Map", "Diffuse Top", "Diffuse Side", "Base Diffuse", "Diffuse Base", "Diffuse Base Map", "Diffuse Color Map",
+            "DiffuseLayer1", "1 - Albedo", "Albedo", "ALB", "TextureAlbedo",
+            "Base Color Texture", "BaseColorTexture", "BaseColor_Texture", "Base_Color", "Base Color", "BaseColor",
+            "Base Texture Color", "BaseColorA", "BC", "Color", "CO", "CO_", "CO_1", "Base_CO", "Base Color + Linework",
+            "Tex", "Tex_Color", "TexColor", "Tex_BaseColor", "AlbedMap", "Tex_Colormap", "Main_T_BaseColor",
+            "Decal_Texture", "PetalDetailMap", "CliffTexture", "M1_T_BC", "Skin Diffuse", "Color_MAIN", "MainTex",
 
-        public static readonly string[][] Normals = {
-            new []
-            {
-                "Trunk_Normal",
-                "Normals", "Normal", "NormalA", "NormalTexture", "Normal Texture", "NormalMap", "Normal A Map", "T_Normal", "Normals Top", "Normals Side", "Fallback Normal",
-                "Base_Normal", "Base Normal", "Normal Base", "TextureNormal", "Tex_BakedNormal", "TexNor", "BakedNormalMap", "Base Texture Normal", "Normal Base Map",
-                "NM", "NM_1", "Base_NM", "NRM", "T_NRM", "M1_T_NRM", "Base NRM", "NRM Base",
-                "Texture A Normal", "CliffNormal", "Skin Normal"
-            },
-            new []{ "Normals_Texture_2", "Texture B Normal", "NormalB", "Normal B Map", "NM_2", "M2_T_NRM" },
-            new []{ "Normals_Texture_3", "Texture C Normal", "NormalC", "Normal C Map", "NM_3", "M3_T_NRM" },
-            new []{ "Normals_Texture_4", "Texture D Normal", "NormalD", "Normal D Map", "NM_4", "M4_T_NRM" },
-            new []{ "Normals_Texture_5", "Texture E Normal", "NormalE", "Normal E Map", "NM_5", "M5_T_NRM" },
-            new []{ "Normals_Texture_6", "Texture F Normal", "NormalF", "Normal F Map", "NM_6", "M6_T_NRM" },
-            new []{ "Normals_Texture_7", "Texture G Normal", "NormalG", "Normal G Map", "NM_7", "M7_T_NRM" },
-            new []{ "Normals_Texture_8", "Texture H Normal", "NormalH", "Normal H Map", "NM_8", "M8_T_NRM" }
-        };
+        ],
+        ["Background Diffuse 2", "Diffuse_Texture_2", "DiffuseLayer2", "Diffuse B", "Diffuse B Map", "BaseColorB", "CO_2", "M2_T_BC"],
+        ["Background Diffuse 3", "Diffuse_Texture_3", "DiffuseLayer3", "Diffuse C", "Diffuse C Map", "BaseColorC", "CO_3", "M3_T_BC"],
+        ["Background Diffuse 4", "Diffuse_Texture_4", "DiffuseLayer4", "Diffuse D", "Diffuse D Map", "BaseColorD", "CO_4", "M4_T_BC"],
+        ["Background Diffuse 5", "Diffuse_Texture_5", "DiffuseLayer5", "Diffuse E", "Diffuse E Map", "BaseColorE", "CO_5", "M5_T_BC"],
+        ["Background Diffuse 6", "Diffuse_Texture_6", "DiffuseLayer6", "Diffuse F", "Diffuse F Map", "BaseColorF", "CO_6", "M6_T_BC"],
+        ["Background Diffuse 7", "Diffuse_Texture_7", "DiffuseLayer7", "Diffuse G", "Diffuse G Map", "BaseColorG", "CO_7", "M7_T_BC"],
+        ["Background Diffuse 8", "Diffuse_Texture_8", "DiffuseLayer8", "Diffuse H", "Diffuse H Map", "BaseColorH", "CO_8", "M8_T_BC"]
+    ];
 
-        public static readonly string[][] SpecularMasks = {
-            new []
-            {
-                "Trunk_Specular", "PackedTexture",
-                "SpecularMasks", "Specular", "SpecMap", "T_Specular", "Specular Top", "Specular Side",
-                "MG", "ORM", "MRAE", "MRAS", "MRAO", "MRA", "MRA A", "MRS", "LP", "LP_1", "Base_LP",
-                "TextureRMA", "Tex_MultiMask", "Tex_Multi", "TexMRC", "TexMRA", "TexRCN", "MultiMaskMap", "MRO Map", "MROA Map",
-                "Base_SRO", "Base Texture RMAO", "Skin SRXO", "SRXO_Mask", "SRXO", "SROA", "SR", "SRO Map", "SRM",
-                "Pack", "PAK", "T_PAK", "M1_T_PAK",
-                "Cliff Spec Texture", "PhysicalMap", "KizokMap"
-            },
-            new []{ "SpecularMasks_2", "MRA B", "LP_2", "M2_T_PAK" },
-            new []{ "SpecularMasks_3", "MRA C", "LP_3", "M3_T_PAK" },
-            new []{ "SpecularMasks_4", "MRA D", "LP_4", "M4_T_PAK" },
-            new []{ "SpecularMasks_5", "MRA E", "LP_5", "M5_T_PAK" },
-            new []{ "SpecularMasks_6", "MRA F", "LP_6", "M6_T_PAK" },
-            new []{ "SpecularMasks_7", "MRA G", "LP_7", "M7_T_PAK" },
-            new []{ "SpecularMasks_8", "MRA H", "LP_8", "M8_T_PAK" }
-        };
+    public static readonly string[][] Normals =
+    [
+        [
+            "Trunk_Normal",
+            "Normals", "Normal", "NormalA", "NormalTexture", "Normal Texture", "Normal_Texture", "NormalMap", "Normal A Map", "T_Normal", "Normals Top", "Normals Side", "Fallback Normal",
+            "Base_Normal", "Base Normal", "Normal Base", "TextureNormal", "Tex_BakedNormal", "TexNor", "BakedNormalMap", "3 - Baked Normal", "Base Texture Normal", "Normal Base Map",
+            "NM", "NM_1", "Base_NM", "NRM", "T_NRM", "M1_T_NRM", "Base NRM", "NRM Base",
+            "Texture A Normal", "CliffNormal", "Skin Normal", "Normal_MAIN","Main_T_Normal(B：SSSMask)"
+        ],
+        ["Normals_Texture_2", "Texture B Normal", "NormalB", "Normal B Map", "NM_2", "M2_T_NRM"],
+        ["Normals_Texture_3", "Texture C Normal", "NormalC", "Normal C Map", "NM_3", "M3_T_NRM"],
+        ["Normals_Texture_4", "Texture D Normal", "NormalD", "Normal D Map", "NM_4", "M4_T_NRM"],
+        ["Normals_Texture_5", "Texture E Normal", "NormalE", "Normal E Map", "NM_5", "M5_T_NRM"],
+        ["Normals_Texture_6", "Texture F Normal", "NormalF", "Normal F Map", "NM_6", "M6_T_NRM"],
+        ["Normals_Texture_7", "Texture G Normal", "NormalG", "Normal G Map", "NM_7", "M7_T_NRM"],
+        ["Normals_Texture_8", "Texture H Normal", "NormalH", "Normal H Map", "NM_8", "M8_T_NRM"]
+    ];
 
-        public static readonly string[][] Emissive = {
-            new []
-            {
-                "Emissive", "EmissiveTexture", "EmissiveColorTexture", "EmissiveColor", "EmissiveMask",
-                "EmmisiveColor_A", "TextureEmissive", "TexEm"
-            },
-            new []{ "L1_Emissive", "EmmisiveColor_B" },
-            new []{ "L2_Emissive", "EmmisiveColor_C" },
-            new []{ "L3_Emissive", "EmmisiveColor_D" },
-            new []{ "L4_Emissive", "EmmisiveColor_E" },
-            new []{ "L5_Emissive", "EmmisiveColor_F" },
-            new []{ "L6_Emissive", "EmmisiveColor_G" },
-            new []{ "L7_Emissive", "EmmisiveColor_H" }
-        };
+    public static readonly string[][] SpecularMasks =
+    [
+        [
+            "Trunk_Specular", "PackedTexture",
+            "SpecularMasks", "Specular", "SpecMap", "T_Specular", "Specular Top", "Specular Side",
+            "MG", "ORM", "MRAE", "MRAS", "MRAO", "MRA", "MRA A", "MRS", "LP", "LP_1", "Base_LP",
+            "TextureRMA", "Tex_MultiMask", "Tex_Multi", "TexMRC", "TexMRA", "TexRCN", "MultiMaskMap", "MRO Map", "MROA Map",
+            "Base_SRO", "Base Texture RMAO", "Skin SRXO", "SRXO_Mask", "SRXO", "SROA", "SR", "SRO Map", "SRM",
+            "Pack", "PAK", "T_PAK", "M1_T_PAK", "2 - Packed mask (MRAO)", "RoughnessMaterial_Mask",
+            "Cliff Spec Texture", "PhysicalMap", "KizokMap", "Roughness_MAIN", "Main_T_MGA"
+        ],
+        ["SpecularMasks_2", "MRA B", "LP_2", "M2_T_PAK"],
+        ["SpecularMasks_3", "MRA C", "LP_3", "M3_T_PAK"],
+        ["SpecularMasks_4", "MRA D", "LP_4", "M4_T_PAK"],
+        ["SpecularMasks_5", "MRA E", "LP_5", "M5_T_PAK"],
+        ["SpecularMasks_6", "MRA F", "LP_6", "M6_T_PAK"],
+        ["SpecularMasks_7", "MRA G", "LP_7", "M7_T_PAK"],
+        ["SpecularMasks_8", "MRA H", "LP_8", "M8_T_PAK"]
+    ];
+
+    public static readonly string[][] Emissive =
+    [
+        [
+            "Emissive", "EmissiveTexture", "EmissiveColorTexture", "EmissiveColor", "EmissiveMask",
+            "EmmisiveColor_A", "TextureEmissive", "TexEm", "Main_T_Emissive"
+        ],
+        ["L1_Emissive", "EmmisiveColor_B"],
+        ["L2_Emissive", "EmmisiveColor_C"],
+        ["L3_Emissive", "EmmisiveColor_D"],
+        ["L4_Emissive", "EmmisiveColor_E"],
+        ["L5_Emissive", "EmmisiveColor_F"],
+        ["L6_Emissive", "EmmisiveColor_G"],
+        ["L7_Emissive", "EmmisiveColor_H"]
+    ];
 
         public static readonly string[][] DiffuseColors = {
             new []
@@ -143,13 +147,12 @@ namespace CUE4Parse.UE4.Assets.Exports.Material
             new []{ "Emissive7", "Color07" }
         };
 
-        [JsonIgnore]
-        public readonly Dictionary<string, UUnrealMaterial> Textures = new ();
-        public readonly Dictionary<string, FLinearColor> Colors = new ();
-        public readonly Dictionary<string, float> Scalars = new ();
-        public readonly Dictionary<string, bool> Switches = new ();
-        public readonly Dictionary<string, object?> Properties = new ();
-        public UUnrealMaterial? Parent;
+    [JsonIgnore]
+    public readonly Dictionary<string, UUnrealMaterial> Textures = [];
+    public readonly Dictionary<string, FLinearColor> Colors = [];
+    public readonly Dictionary<string, float> Scalars = [];
+    public readonly Dictionary<string, bool> Switches = [];
+    public readonly Dictionary<string, object?> Properties = [];
 
         public IEnumerable<UUnrealMaterial> GetTextures(IEnumerable<string> names)
         {
@@ -227,16 +230,16 @@ namespace CUE4Parse.UE4.Assets.Exports.Material
             return mapping;
         }
 
-        public bool TryGetTexture2d(out UTexture2D? texture, params string[] names)
+    public bool TryGetTexture2d([MaybeNullWhen(false)] out UTexture texture, params string[] names)
+    {
+        foreach (var name in names)
         {
-            for (int i = 0; i < names.Length; i++)
+            if (Textures.TryGetValue(name, out var unrealMaterial) && unrealMaterial is UTexture texture2d)
             {
-                if (Textures.TryGetValue(names[i], out var unrealMaterial) && unrealMaterial is UTexture2D texture2d)
-                {
-                    texture = texture2d;
-                    return true;
-                }
+                texture = texture2d;
+                return true;
             }
+        }
 
             texture = null;
             return false;

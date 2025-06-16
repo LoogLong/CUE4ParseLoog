@@ -1,8 +1,10 @@
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
 using CUE4Parse.UE4.AssetRegistry.Objects;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.Readers;
+using CUE4Parse.UE4.Versions;
 
 namespace CUE4Parse.UE4.AssetRegistry.Readers
 {
@@ -19,6 +21,16 @@ namespace CUE4Parse.UE4.AssetRegistry.Readers
             baseArchive = Ar;
             Header = header;
             NameMap = [];
+        }
+
+        public override string ReadFString()
+        {
+            if (Header.Version >= FAssetRegistryVersionType.MarshalledTextAsUTF8String)
+            {
+                return Encoding.UTF8.GetString(ReadBytes(Read<int>()));
+            }
+
+            return baseArchive.ReadFString();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

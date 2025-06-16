@@ -7,16 +7,18 @@ using CUE4Parse.UE4.Readers;
 using CUE4Parse.UE4.Versions;
 using Newtonsoft.Json;
 
-namespace CUE4Parse.UE4.Assets.Exports.Material
+namespace CUE4Parse.UE4.Assets.Exports.Material;
+
+public class UMaterialInstanceDynamic: UMaterialInstance;
+
+public class UMaterialInstance : UMaterialInterface
 {
-    public class UMaterialInstance : UMaterialInterface
-    {
-        private ResolvedObject? _parent;
-        public UUnrealMaterial? Parent => _parent?.Load<UUnrealMaterial>();
-        public bool bHasStaticPermutationResource;
-        public FMaterialInstanceBasePropertyOverrides? BasePropertyOverrides;
-        public FStaticParameterSet? StaticParameters;
-        public FStructFallback? CachedData;
+    private ResolvedObject? _parent;
+    public UUnrealMaterial? Parent => _parent?.Load<UUnrealMaterial>();
+    public bool bHasStaticPermutationResource;
+    public FMaterialInstanceBasePropertyOverrides? BasePropertyOverrides;
+    public FStaticParameterSet? StaticParameters;
+    public FStructFallback? CachedData;
 
         public override void Deserialize(FAssetArchive Ar, long validPos)
         {
@@ -41,7 +43,10 @@ namespace CUE4Parse.UE4.Assets.Exports.Material
                         StaticParameters = new FStaticParameterSet(Ar);
                     }
 
-#if READ_SHADER_MAPS
+            if (Ar is { Game: >= EGame.GAME_UE4_25, Owner.Provider.ReadShaderMaps: true })
+            {
+                try
+                {
                     DeserializeInlineShaderMaps(Ar, LoadedMaterialResources);
 #else
                     Ar.Position = validPos; // TODO This skips every data after the inline shader map data, find a way to properly skip it
